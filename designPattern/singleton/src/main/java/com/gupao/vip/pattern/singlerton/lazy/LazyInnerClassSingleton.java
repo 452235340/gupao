@@ -10,7 +10,9 @@ public class LazyInnerClassSingleton {
 
     //虽然构造方法私有了，但仍旧逃不过反射的法眼
     private LazyInnerClassSingleton(){
-
+        if(null!= LazyHolder.lazy){
+            throw new RuntimeException("不允许构建多个实例");
+        }
     }
 
     //懒汉式单利
