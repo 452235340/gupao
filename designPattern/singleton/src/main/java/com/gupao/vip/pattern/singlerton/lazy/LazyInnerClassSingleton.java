@@ -11,8 +11,8 @@ public class LazyInnerClassSingleton {
     //虽然构造方法私有了，但仍旧逃不过反射的法眼
     private LazyInnerClassSingleton(){
         //防止故意通过反射机制破坏单例，则在构造方法中加入判断，抛出异常，阻止反射
-        if(LazyHolder.lazy != null){
-            throw new RuntimeException("不能创建多个实例");
+        if(null!= LazyHolder.lazy){
+            throw new RuntimeException("不允许构建多个实例");
         }
     }
 
