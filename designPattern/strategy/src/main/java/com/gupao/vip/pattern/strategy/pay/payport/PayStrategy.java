@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 支付策略管理类
  * Created by qingbowu on 2019/3/15.
  */
 public class PayStrategy {
@@ -23,7 +24,11 @@ public class PayStrategy {
         PAY_STRATEGY_MAP.put(UNION_PAY,new UnionPay());
     }
 
+    //通过统一入口实现动态策略
     public static Payment getPayStrategy(String payStrategyKey){
-        return null;
+        if (!PAY_STRATEGY_MAP.containsKey(payStrategyKey)){
+           return PAY_STRATEGY_MAP.get(DEFAULT_PAY);
+        }
+        return PAY_STRATEGY_MAP.get(payStrategyKey);
     }
 }

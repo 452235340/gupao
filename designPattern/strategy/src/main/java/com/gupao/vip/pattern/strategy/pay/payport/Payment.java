@@ -3,6 +3,7 @@ package com.gupao.vip.pattern.strategy.pay.payport;
 import com.gupao.vip.pattern.strategy.pay.MsgResult;
 
 /**
+ * 支付渠道
  * Created by qingbowu on 2019/3/15.
  */
 public abstract class Payment {

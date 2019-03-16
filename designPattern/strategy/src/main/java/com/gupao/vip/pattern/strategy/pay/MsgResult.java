@@ -19,6 +19,6 @@ public class MsgResult {
 
     @Override
     public String toString() {
-        return "支付状态：[" + code + "], '" + msg  + ", 交易详情" + object ;
+        return "支付状态：[" + code + "], " + msg  + ", 交易详情:" + object ;
     }
 }
