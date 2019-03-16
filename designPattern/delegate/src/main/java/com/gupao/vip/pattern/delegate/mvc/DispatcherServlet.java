@@ -75,8 +75,6 @@ public class DispatcherServlet extends HttpServlet {
             obj = handler.getMethod().invoke(handler.getController(), req.getParameter("mid"));
         } catch (IllegalAccessException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
