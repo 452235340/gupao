@@ -5,6 +5,7 @@ import com.gupao.vip.mvcframework.annotation.MyController;
 import com.gupao.vip.mvcframework.annotation.MyRequestmapping;
 import com.gupao.vip.mvcframework.annotation.MyService;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -30,21 +31,44 @@ public class MyDispatchServlet extends HttpServlet {
 
     private Map<String,Object> IOC = new HashMap<String,Object>();
 
+    private Map<String,Method> handlerMapping = new HashMap<String,Method>();
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         this.doPost(req, resp);
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.doPost(req, resp);
+    private void doDispatch(HttpServletRequest req, HttpServletResponse resp) throws Exception{
+
+        String url = req.getRequestURI();
+        String contextPath = req.getContextPath();
+        url = url.replaceAll(contextPath,"").replaceAll("/+","/");
+
+        if (!handlerMapping.containsKey(url)){
+            resp.getWriter().write("404 Not Found!!!");
+        }
+        Method method = handlerMapping.get(url);
+        String beanName = lowerFirstCase(method.getDeclaringClass().getSimpleName());
+        Map<String,String[]> parameterMap = req.getParameterMap();
+        Object obj = method.invoke(IOC.get(beanName), new Object[]{req, parameterMap.get("name")[0]});
+        resp.getWriter().write(obj.toString());
     }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            this.doDispatch(req,resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.getWriter().write("500 Exception,Detail:" + Arrays.toString(e.getStackTrace()));
+        }
+    }
 
     @Override
-    public void init() throws ServletException {
+    public void init(ServletConfig config) throws ServletException {
+
         //1、加载配置文件
-        this.loadConfig(LOCATION);
+        this.loadConfig(config.getInitParameter(LOCATION));
 
         //2、扫描所有相关的类
         scannerPackage(properties.getProperty("scanPackage"));
@@ -58,48 +82,27 @@ public class MyDispatchServlet extends HttpServlet {
         //5、构造HandlerMapping
         initHandlerMapping();
 
+        System.out.println("my spring framework is started");
 
         //6、等待请求、很久url拿到Handlermapping中对应的的方法，利用反射进行调用
-
-        System.out.println("my spring framework is started");
     }
 
     /**
-     * 初始化HandlerMapping，将MyController中的方法与url的对应关系注册到HandlerMapping中
+     * 根据web.xml配置参数获取配置文件名，然后加载该配置文件
+     * @param location
      */
-    private void initHandlerMapping() {
-        if (IOC.isEmpty()){return;}
-        for (Map.Entry<String,Object> entry : IOC.entrySet()){
-            Class<?> clazz = entry.getValue().getClass();
-            if (!clazz.isAnnotationPresent(MyController.class)){continue;}
-
-            Method[] methods = entry.getValue().getClass().getMethods();
-            for (Method method : methods){
-                if (!method.isAnnotationPresent(MyRequestmapping.class)){continue;}
-
-            }
-        }
-    }
-
-    /**
-     * 依赖注入
-     */
-    private void doAutoWirted() {
-        if (IOC.isEmpty()){return;}
-        for (Map.Entry<String,Object> entry : IOC.entrySet()){
-            //拿到每个类所有的字段
-            Field[] fields = entry.getValue().getClass().getDeclaredFields();
-            for (Field field : fields){
-                if (!field.isAnnotationPresent(MyAutowired.class)){continue;}
-                MyAutowired myAutowired = field.getAnnotation(MyAutowired.class);
-                   String beanName = myAutowired.value().trim();
-                if ("".equals(beanName)){
-                    beanName = field.getType().getName();
-                }
-                field.setAccessible(true);
+    private void loadConfig(String location) {
+        InputStream fis = null;
+        try {
+            fis = this.getClass().getClassLoader().getResourceAsStream(location);
+            properties.load(fis);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if (null != fis){
                 try {
-                    field.set(entry.getValue(),IOC.get(beanName));
-                } catch (Exception e) {
+                    fis.close();
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -107,42 +110,9 @@ public class MyDispatchServlet extends HttpServlet {
     }
 
     /**
-     * 实例活所有相关类
-     */
-    private void doInstance() {
-        if (className.size()>0){
-            try {
-                for (String className : className){
-                    Class<?> clazz = Class.forName(className);
-                    if (clazz.isAnnotationPresent(MyController.class)){
-                        String classname = lowerFirstCase(clazz.getSimpleName());
-                        IOC.put(classname,clazz.newInstance());
-                    }else if (clazz.isAnnotationPresent(MyService.class)){
-                        MyService myService = clazz.getAnnotation(MyService.class);
-                        String serviceName = myService.value();
-                        //如果设置了名字，则使用用户自己设置的
-                        if (!"".equals(serviceName)){
-                            IOC.put(serviceName,clazz.newInstance());
-                            continue;
-                        }
-                        //若未设置则按接口类型创建一个实例
-                        Class<?>[] interfaces = clazz.getInterfaces();
-                        for (Class<?> cls : interfaces){
-                            IOC.put(cls.getName(),cls.newInstance());
-                        }
-                    }else {
-                        continue;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
      * 首字母小写
      * 利用ASCII码中大写字符与小写字符值相差32的规则实现首字母小写
+     * 如果类名首字母是小写的会有问题
      * @param simpleName
      * @return
      */
@@ -159,38 +129,118 @@ public class MyDispatchServlet extends HttpServlet {
     private void scannerPackage(String packageName) {
         //将所有的包路劲转换为文件路劲
         URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.","/"));
-        File dir = new File(url.getPath());
+        File dir = new File(url.getFile());
         for(File file : dir.listFiles()){
             if (file.isDirectory()){
                 //如果是文件则继续递归
-                scannerPackage(packageName+file.getName());
+                scannerPackage(packageName + "." + file.getName());
+            }else {
+                if (!file.getName().endsWith(".class")){continue;}
+                String classname = (packageName + "." + file.getName().replace(".class","")).trim();
+                className.add(classname);
             }
-            className.add(packageName + "." + file.getName().replace(".clsss","").trim());
         }
     }
 
     /**
-     * 根据web.xml配置参数获取配置文件名，然后加载该配置文件
-     * @param location
+     * 实例活所有相关类,为后面的DI操作做准备
      */
-    private void loadConfig(String location) {
-        InputStream fis = null;
+    private void doInstance() {
+        if (className.isEmpty()){ return; }
+
         try {
-            fis = this.getClass().getResourceAsStream(location);
-            properties.load(fis);
-        } catch (IOException e) {
+            for (String className : className){
+                Class<?> clazz = Class.forName(className);
+                //对加了注解的类进行初始化
+                if (clazz.isAnnotationPresent(MyController.class)){
+                    //默认类名首字母小写
+                    String beanName = lowerFirstCase(clazz.getSimpleName());
+                    IOC.put(beanName,clazz.newInstance());
+                }else if (clazz.isAnnotationPresent(MyService.class)){
+                    //1、首先拿自定义类名
+                    MyService myService = clazz.getAnnotation(MyService.class);
+                    String beanName = myService.value();
+                    //2、如果为空则使用类名首字母小写
+                    if ("".equals(beanName.trim())){
+                        beanName = lowerFirstCase(clazz.getSimpleName());
+                    }
+                    Object instance = clazz.newInstance();
+                    IOC.put(beanName,instance);
+                    //3、若未设置则按接口类型创建一个实例
+                    for (Class<?> cls : clazz.getInterfaces()){
+                        if (IOC.keySet().contains(cls.getName())){
+                            throw new Exception("The '" +cls.getName() + "' is exists!!!");
+                        }
+                        IOC.put(cls.getName(),instance);
+                    }
+                }else {
+                    continue;
+                }
+            }
+        } catch (Exception e) {
             e.printStackTrace();
-        }finally {
-            if (null != fis){
+        }
+
+    }
+
+    /**
+     * 依赖注入（赋值）
+     */
+    private void doAutoWirted() {
+        if (IOC.isEmpty()){ return;}
+        for (Map.Entry<String,Object> entry : IOC.entrySet()){
+            //拿到每个类所有的字段(包括private修饰的)
+            Field[] fields = entry.getValue().getClass().getDeclaredFields();
+            for (Field field : fields){
+                if (!field.isAnnotationPresent(MyAutowired.class)){continue;}
+                MyAutowired myAutowired = field.getAnnotation(MyAutowired.class);
+                   String beanName = myAutowired.value().trim();
+                if ("".equals(beanName)){
+                    //为空，则默认使用接口类型注入
+                    beanName = field.getType().getName();
+                }
+                field.setAccessible(true);
                 try {
-                    fis.close();
-                } catch (IOException e) {
+                    //利用反射动态给字段赋值
+                    field.set(entry.getValue(),IOC.get(beanName));
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
-
-
     }
+
+    /**
+     * 初始化HandlerMapping，将MyController中的method与url一对一的对应关系注册到HandlerMapping中
+     */
+    private void initHandlerMapping() {
+        if (IOC.isEmpty()){ return; }
+        for (Map.Entry<String,Object> entry : IOC.entrySet()){
+            Class<?> clazz = entry.getValue().getClass();
+            if (!clazz.isAnnotationPresent(MyController.class)){continue;}
+
+            //保存写在类上的@MyRequestmapping("/demo")
+            String baseUrl = "";
+            if (clazz.isAnnotationPresent(MyRequestmapping.class)){
+                MyRequestmapping myRequestmapping = clazz.getAnnotation(MyRequestmapping.class);
+                baseUrl = myRequestmapping.value();
+            }
+            //获取所有的public方法 
+            Method[] methods = clazz.getMethods();
+            for (Method method : methods){
+                if (!method.isAnnotationPresent(MyRequestmapping.class)){continue;}
+                MyRequestmapping myRequestmapping = method.getAnnotation(MyRequestmapping.class);
+                String url = ("/" + baseUrl + "/" +myRequestmapping.value()).replaceAll("/+","/");
+                handlerMapping.put(url,method);
+                System.out.println("Mapped : " + url + "," + method.getName() );
+            }
+        }
+    }
+
+
+
+
+
+
 
 }
