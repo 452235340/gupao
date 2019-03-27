@@ -7,7 +7,8 @@
 
   <servlet>
     <servlet-name>myDispatchServlet</servlet-name>
-    <servlet-class>com.gupao.vip.mvcframework.servlet.MyDispatchServlet</servlet-class>
+    <!--<servlet-class>com.gupao.vip.mvcframework.servlet.v1.MyDispatchServlet</servlet-class>-->
+    <servlet-class>com.gupao.vip.mvcframework.servlet.v2.MyDispatchServlet</servlet-class>
     <init-param>
       <param-name>contextConfigLocation</param-name>
       <param-value>application.properties</param-value>

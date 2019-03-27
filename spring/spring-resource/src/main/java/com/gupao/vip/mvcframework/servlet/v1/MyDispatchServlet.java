@@ -1,9 +1,6 @@
-package com.gupao.vip.mvcframework.servlet;
+package com.gupao.vip.mvcframework.servlet.v1;
 
-import com.gupao.vip.mvcframework.annotation.MyAutowired;
-import com.gupao.vip.mvcframework.annotation.MyController;
-import com.gupao.vip.mvcframework.annotation.MyRequestmapping;
-import com.gupao.vip.mvcframework.annotation.MyService;
+import com.gupao.vip.mvcframework.annotation.*;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -13,10 +10,12 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
+
 
 /**
  * Created by qingbowu on 2019/3/25.
@@ -27,10 +26,13 @@ public class MyDispatchServlet extends HttpServlet {
 
     private Properties properties = new Properties();
 
+    //保存扫描的所有的类名
     private  List<String> className = new ArrayList<String>();
 
+    //IOC容器，保存所有需要放入ioc容器中类的实例
     private Map<String,Object> IOC = new HashMap<String,Object>();
 
+    //保存url和Method的对应关系
     private Map<String,Method> handlerMapping = new HashMap<String,Method>();
 
     @Override
@@ -39,19 +41,76 @@ public class MyDispatchServlet extends HttpServlet {
     }
 
     private void doDispatch(HttpServletRequest req, HttpServletResponse resp) throws Exception{
-
+        //获取请求的url
         String url = req.getRequestURI();
         String contextPath = req.getContextPath();
         url = url.replaceAll(contextPath,"").replaceAll("/+","/");
 
         if (!handlerMapping.containsKey(url)){
             resp.getWriter().write("404 Not Found!!!");
+            return;
         }
+        //根据url拿到url对应的Method
         Method method = handlerMapping.get(url);
-        String beanName = lowerFirstCase(method.getDeclaringClass().getSimpleName());
+
+        //获取请求参数
         Map<String,String[]> parameterMap = req.getParameterMap();
-        Object obj = method.invoke(IOC.get(beanName), new Object[]{req, parameterMap.get("name")[0]});
-        resp.getWriter().write(obj.toString());
+
+        //获取方法的形参列表
+        Class<?>[] parameterTypes = method.getParameterTypes();
+
+        Object[] paramValues = new Object[parameterTypes.length];
+        for (int i = 0 ;i<parameterTypes.length;i++){
+            Class<?> parameterType = parameterTypes[i];
+            //这里不能用instanceof，parameterType它是形参而不是实参
+            if (parameterType == HttpServletRequest.class){
+                paramValues[i] = req;
+                continue;
+            }else if (parameterType == HttpServletResponse.class){
+                paramValues[i] = resp;
+                continue;
+            }
+
+            //根据方法拿到参数的注解，一个参数可能有多个注解，一个方法有多个参数，所以得到的是一个二维数组
+            Annotation[][] annotations = method.getParameterAnnotations();
+            x: for (int j=i;j<annotations.length;j++){
+                for (Annotation a : annotations[j]){
+                    //解析的只是MyRequestParameter
+                    if (a instanceof MyRequestParameter){
+                        //拿到参数名称，去http://localhost:8080/demo/query?name=zhangsan匹配
+                        String paramName = ((MyRequestParameter) a).value();
+                        //从req中拿到的参数列表中去找对应的key
+                        if (parameterMap.containsKey(paramName)){
+                            //拿到key对应的值，这个值有一对多的关系，一个key对应一个数组
+                            //对方接收的是String类型，把数据统一处理为为String
+                            String value = Arrays.toString(parameterMap.get(paramName))
+                                    .replaceAll("\\[|\\]","")
+                                    .replaceAll("\\s","");
+
+                            //类型强制转换
+                            paramValues[i] = convert(parameterType,value);
+                            break x;
+                        }
+                    }
+                }
+            }
+        }
+
+        //通过反射拿到method所在的class，再根据class拿到class的名称，再调用lowerFirstCase获得beanName
+        String beanName = lowerFirstCase(method.getDeclaringClass().getSimpleName());
+
+        method.invoke(IOC.get(beanName), paramValues);
+    }
+
+    //url传过来的参数都是String类型的，http是基于字符串协议
+    //这里把String转为任意类型就好
+    private Object convert(Class<?> type,String value){
+
+        if (Integer.class == type){
+            return Integer.valueOf(value);
+        }
+        //如果还有其他类型，在这里继续加if(后面优化可以用策略模式)
+        return value;
     }
 
     @Override
@@ -236,10 +295,6 @@ public class MyDispatchServlet extends HttpServlet {
             }
         }
     }
-
-
-
-
 
 
 
