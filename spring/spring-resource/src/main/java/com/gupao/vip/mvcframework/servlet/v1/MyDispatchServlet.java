@@ -40,6 +40,16 @@ public class MyDispatchServlet extends HttpServlet {
         this.doPost(req, resp);
     }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            this.doDispatch(req,resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.getWriter().write("500 Exception,Detail:" + Arrays.toString(e.getStackTrace()));
+        }
+    }
+
     private void doDispatch(HttpServletRequest req, HttpServletResponse resp) throws Exception{
         //获取请求的url
         String url = req.getRequestURI();
@@ -73,7 +83,7 @@ public class MyDispatchServlet extends HttpServlet {
 
             //根据方法拿到参数的注解，一个参数可能有多个注解，一个方法有多个参数，所以得到的是一个二维数组
             Annotation[][] annotations = method.getParameterAnnotations();
-            x: for (int j=i;j<annotations.length;j++){
+           for (int j=i;j<annotations.length;j++){
                 for (Annotation a : annotations[j]){
                     //解析的只是MyRequestParameter
                     if (a instanceof MyRequestParameter){
@@ -89,7 +99,6 @@ public class MyDispatchServlet extends HttpServlet {
 
                             //类型强制转换
                             paramValues[i] = convert(parameterType,value);
-                            break x;
                         }
                     }
                 }
@@ -111,16 +120,6 @@ public class MyDispatchServlet extends HttpServlet {
         }
         //如果还有其他类型，在这里继续加if(后面优化可以用策略模式)
         return value;
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        try {
-            this.doDispatch(req,resp);
-        } catch (Exception e) {
-            e.printStackTrace();
-            resp.getWriter().write("500 Exception,Detail:" + Arrays.toString(e.getStackTrace()));
-        }
     }
 
     @Override
@@ -186,7 +185,8 @@ public class MyDispatchServlet extends HttpServlet {
      * @param packageName
      */
     private void scannerPackage(String packageName) {
-        //将所有的包路劲转换为文件路劲
+        //scanPackage = com.gupaoedu.demo ，存储的是包路径
+        //转换为文件路径，实际上就是把.替换为/就OK 了
         URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.","/"));
         File dir = new File(url.getFile());
         for(File file : dir.listFiles()){
@@ -206,11 +206,13 @@ public class MyDispatchServlet extends HttpServlet {
      */
     private void doInstance() {
         if (className.isEmpty()){ return; }
-
         try {
             for (String className : className){
                 Class<?> clazz = Class.forName(className);
-                //对加了注解的类进行初始化
+                //什么样的类才需要初始化呢？
+                //加了注解的类，才初始化，怎么判断？
+                //为了简化代码逻辑，主要体会设计思想，只举例@Controller 和@Service,
+                // @Componment...就一一举例了
                 if (clazz.isAnnotationPresent(MyController.class)){
                     //默认类名首字母小写
                     String beanName = lowerFirstCase(clazz.getSimpleName());
@@ -225,11 +227,12 @@ public class MyDispatchServlet extends HttpServlet {
                     }
                     Object instance = clazz.newInstance();
                     IOC.put(beanName,instance);
-                    //3、若未设置则按接口类型创建一个实例
+                    //3、根据类型自动赋值,投机取巧的方式
                     for (Class<?> cls : clazz.getInterfaces()){
                         if (IOC.keySet().contains(cls.getName())){
                             throw new Exception("The '" +cls.getName() + "' is exists!!!");
                         }
+                        //把接口的类型直接当成key 了
                         IOC.put(cls.getName(),instance);
                     }
                 }else {
@@ -253,11 +256,13 @@ public class MyDispatchServlet extends HttpServlet {
             for (Field field : fields){
                 if (!field.isAnnotationPresent(MyAutowired.class)){continue;}
                 MyAutowired myAutowired = field.getAnnotation(MyAutowired.class);
-                   String beanName = myAutowired.value().trim();
+                String beanName = myAutowired.value().trim();
+                //如果用户没有自定义beanName，默认就根据类型注入
                 if ("".equals(beanName)){
-                    //为空，则默认使用接口类型注入
+                    //获取接口类型,根据接口类型为key去IOC容器中取值
                     beanName = field.getType().getName();
                 }
+                //如果是public 以外的修饰符，只要加了@Autowired 注解，都要强制赋值
                 field.setAccessible(true);
                 try {
                     //利用反射动态给字段赋值
@@ -280,16 +285,16 @@ public class MyDispatchServlet extends HttpServlet {
 
             //保存写在类上的@MyRequestmapping("/demo")
             String baseUrl = "";
-            if (clazz.isAnnotationPresent(MyRequestmapping.class)){
-                MyRequestmapping myRequestmapping = clazz.getAnnotation(MyRequestmapping.class);
-                baseUrl = myRequestmapping.value();
+            if (clazz.isAnnotationPresent(MyRequestMapping.class)){
+                MyRequestMapping myRequestMapping = clazz.getAnnotation(MyRequestMapping.class);
+                baseUrl = myRequestMapping.value();
             }
             //获取所有的public方法 
             Method[] methods = clazz.getMethods();
             for (Method method : methods){
-                if (!method.isAnnotationPresent(MyRequestmapping.class)){continue;}
-                MyRequestmapping myRequestmapping = method.getAnnotation(MyRequestmapping.class);
-                String url = ("/" + baseUrl + "/" +myRequestmapping.value()).replaceAll("/+","/");
+                if (!method.isAnnotationPresent(MyRequestMapping.class)){continue;}
+                MyRequestMapping myRequestMapping = method.getAnnotation(MyRequestMapping.class);
+                String url = ("/" + baseUrl + "/" +myRequestMapping.value()).replaceAll("/+","/");
                 handlerMapping.put(url,method);
                 System.out.println("Mapped : " + url + "," + method.getName() );
             }

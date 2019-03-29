@@ -47,6 +47,16 @@ public class MyDispatchServlet extends HttpServlet {
         this.doPost(req, resp);
     }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            this.doDispatch(req,resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.getWriter().write("500 Exception,Detail:" + Arrays.toString(e.getStackTrace()));
+        }
+    }
+
     private void doDispatch(HttpServletRequest req, HttpServletResponse resp) throws Exception{
 
         HandlerMapping handlerMapping =  getHandlerMapping(req);
@@ -110,15 +120,6 @@ public class MyDispatchServlet extends HttpServlet {
         return value;
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        try {
-            this.doDispatch(req,resp);
-        } catch (Exception e) {
-            e.printStackTrace();
-            resp.getWriter().write("500 Exception,Detail:" + Arrays.toString(e.getStackTrace()));
-        }
-    }
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -277,15 +278,15 @@ public class MyDispatchServlet extends HttpServlet {
 
             //保存写在类上的@MyRequestmapping("/demo")
             String baseUrl = "";
-            if (clazz.isAnnotationPresent(MyRequestmapping.class)){
-                MyRequestmapping myRequestmapping = clazz.getAnnotation(MyRequestmapping.class);
+            if (clazz.isAnnotationPresent(MyRequestMapping.class)){
+                MyRequestMapping myRequestmapping = clazz.getAnnotation(MyRequestMapping.class);
                 baseUrl = myRequestmapping.value();
             }
             //获取所有的public方法 
             Method[] methods = clazz.getMethods();
             for (Method method : methods){
-                if (!method.isAnnotationPresent(MyRequestmapping.class)){continue;}
-                MyRequestmapping myRequestmapping = method.getAnnotation(MyRequestmapping.class);
+                if (!method.isAnnotationPresent(MyRequestMapping.class)){continue;}
+                MyRequestMapping myRequestmapping = method.getAnnotation(MyRequestMapping.class);
                 String url = ("/" + baseUrl + "/" +myRequestmapping.value()).replaceAll("/+","/");
                 this.handlerMapping.add(new HandlerMapping(url,entry.getValue(),method));
                 System.out.println("Mapped : " + url + "," + method.getName() );
