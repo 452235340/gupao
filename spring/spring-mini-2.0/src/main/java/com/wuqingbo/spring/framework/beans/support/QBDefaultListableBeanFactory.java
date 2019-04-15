@@ -12,6 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class QBDefaultListableBeanFactory extends QBAbstractApplicationContext {
 
-    //存储注册信息的BeanDefinition
-    private final Map<String, QBBeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
+    //存储注册信息的BeanDefinition，伪IOC容器
+    protected final Map<String, QBBeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 }
