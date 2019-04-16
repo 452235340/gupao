@@ -27,7 +27,7 @@ public class QBBeanDefinitionReader {
         InputStream fis = null;
         try {
             //通过url定位找到其所对应的文件，转化为文件流读取
-            fis = this.getClass().getClassLoader().getResourceAsStream(locations[0]);
+            fis = this.getClass().getClassLoader().getResourceAsStream(locations[0].replace("classpath:",""));
             config.load(fis);
         } catch (IOException e) {
             e.printStackTrace();
@@ -47,7 +47,7 @@ public class QBBeanDefinitionReader {
     private void doScanner(String packageName) {
 
         //将所有的包路径转换为文件路径，其实就是把.替换为为/
-        URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.","/"));
+        URL url = this.getClass().getResource("/" + packageName.replaceAll("\\.","/"));
         File dir = new File(url.getFile());
         for(File file : dir.listFiles()){
             if (file.isDirectory()){
@@ -68,34 +68,45 @@ public class QBBeanDefinitionReader {
     //把每一个配置文件中扫描到的所有的配置信息解析成一个BeanDefinition对象，以便于之后IOC操作方便
     public List<QBBeanDefinition> loadBeanDefinitions() {
         List<QBBeanDefinition> result = new ArrayList<QBBeanDefinition>();
-        for (String className : registryBeanClasses){
-            QBBeanDefinition beanDefinition = doCreateBeanDefinition(className);
-            if (null == beanDefinition){ continue;}
-            result.add(beanDefinition);
+        try {
+            for (String className : registryBeanClasses){
+                Class<?> beanClass = Class.forName(className);
+                //如果是一个接口，用它的实现类作为beanClassName
+                if (beanClass.isInterface()){continue;}
+
+                //beanName有三种情况:
+                //1、默认是类名首字母小写
+                //2、自定义名字
+                //3、接口注入
+                QBBeanDefinition beanDefinition = doCreateBeanDefinition(lowerFirstCase(beanClass.getSimpleName()),beanClass.getName());
+                result.add(beanDefinition);
+
+                Class<?>[] interfaces = beanClass.getInterfaces();
+                for (Class<?> inf : interfaces) {
+                    //如果是多个实现类，只能覆盖
+                    //为什么？因为Spring没那么智能，就是这么傻
+                    //这个时候，可以自定义名字
+                    result.add(doCreateBeanDefinition(lowerFirstCase(inf.getName()),beanClass.getName()));
+                }
+
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
-        return null;
+        return result;
     }
 
     /**
      * 把每一个配置信息解析成一个BeanDefinition
-     * @param className
+     * @param factoryBeanName
+     * @param beanClassName
      * @return
      */
-    private QBBeanDefinition doCreateBeanDefinition(String className){
-        try {
-            Class<?> beanClass = Class.forName(className);
-            //如果是一个接口，用它的实现类作为beanClassName
-            if (beanClass.isInterface()){
-                return null;
-            }
-            QBBeanDefinition beanDefinition = new QBBeanDefinition();
-            beanDefinition.setBeanClassName(className);
-            beanDefinition.setFactoryBeanName(lowerFirstCase(beanClass.getSimpleName()));
-            return beanDefinition;
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return null;
+    private QBBeanDefinition doCreateBeanDefinition(String factoryBeanName,String beanClassName){
+        QBBeanDefinition beanDefinition = new QBBeanDefinition();
+        beanDefinition.setBeanClassName(beanClassName);
+        beanDefinition.setFactoryBeanName(factoryBeanName);
+        return beanDefinition;
     }
 
     /**

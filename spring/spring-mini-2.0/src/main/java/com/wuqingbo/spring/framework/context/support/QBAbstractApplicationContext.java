@@ -7,5 +7,5 @@ package com.wuqingbo.spring.framework.context.support;
  */
 public abstract class QBAbstractApplicationContext {
 
-    public void refresh(){};
+    public void refresh()throws Exception {};
 }

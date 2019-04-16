@@ -5,15 +5,22 @@ package com.wuqingbo.spring.framework.beans;
  */
 public class QBBeanWrapper {
 
+    private Object wrappedInstance;
+    private Class<?> wrappedClass;
 
-   public Object getWrappedInstance(){
-       return null;
+    public QBBeanWrapper(Object wrappedInstance) {
+        this.wrappedInstance = wrappedInstance;
+    }
+
+    public Object getWrappedInstance(){
+       return this.wrappedInstance;
    }
 
     /**
-     * Return the type of the wrapped bean instance.
+     * 返回代理以后的Class
+     * 可能会是个$Proxy0
      */
     public Class<?> getWrappedClass(){
-        return null;
+        return this.wrappedInstance.getClass();
     }
 }
