@@ -6,7 +6,7 @@ import com.wuqingbo.spring.framework.annotation.QBService;
 import com.wuqingbo.spring.framework.beans.QBBeanFactory;
 import com.wuqingbo.spring.framework.beans.QBBeanWrapper;
 import com.wuqingbo.spring.framework.beans.config.QBBeanDefinition;
-import com.wuqingbo.spring.framework.beans.config.QBBeanPostProcessor;
+//import com.wuqingbo.spring.framework.beans.config.QBBeanPostProcessor;
 import com.wuqingbo.spring.framework.beans.support.QBBeanDefinitionReader;
 import com.wuqingbo.spring.framework.beans.support.QBDefaultListableBeanFactory;
 
