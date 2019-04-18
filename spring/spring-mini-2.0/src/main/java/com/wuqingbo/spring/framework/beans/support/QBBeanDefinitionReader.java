@@ -1,5 +1,7 @@
 package com.wuqingbo.spring.framework.beans.support;
 
+import com.wuqingbo.spring.framework.annotation.QBController;
+import com.wuqingbo.spring.framework.annotation.QBService;
 import com.wuqingbo.spring.framework.beans.config.QBBeanDefinition;
 
 import java.io.File;
@@ -72,7 +74,11 @@ public class QBBeanDefinitionReader {
             for (String className : registryBeanClasses){
                 Class<?> beanClass = Class.forName(className);
                 //如果是一个接口，用它的实现类作为beanClassName
-                if (beanClass.isInterface()){continue;}
+//                if (beanClass.isInterface()){continue;}
+                if (beanClass.isInterface() || beanClass.isAnnotationPresent(QBController.class)
+                        || beanClass.isAnnotationPresent(QBService.class)){
+                    continue;
+                }
 
                 //beanName有三种情况:
                 //1、默认是类名首字母小写
