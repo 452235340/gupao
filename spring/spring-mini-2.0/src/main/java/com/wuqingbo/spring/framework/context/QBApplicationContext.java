@@ -13,6 +13,7 @@ import com.wuqingbo.spring.framework.beans.support.QBDefaultListableBeanFactory;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -168,5 +169,9 @@ public class QBApplicationContext extends QBDefaultListableBeanFactory implement
             e.printStackTrace();
         }
         return instance;
+    }
+
+    public Properties getConfig(){
+        return this.reader.getConfig();
     }
 }
