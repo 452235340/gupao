@@ -13,6 +13,7 @@ import com.wuqingbo.spring.framework.webmvc.servlet.QBModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,7 +49,7 @@ public class DemoController {
             e.printStackTrace();
             Map<String,Object> model = new HashMap<String,Object>();
             model.put("detail",e.getMessage());
-            model.put("stackTrace",e.getMessage());
+            model.put("stackTrace", Arrays.toString(e.getStackTrace()).replaceAll("\\[|\\]",""));
             return new QBModelAndView("500",model);
         }
     }

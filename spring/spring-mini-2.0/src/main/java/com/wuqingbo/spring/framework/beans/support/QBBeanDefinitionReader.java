@@ -87,7 +87,7 @@ public class QBBeanDefinitionReader {
                     //如果是多个实现类，只能覆盖
                     //为什么？因为Spring没那么智能，就是这么傻
                     //这个时候，可以自定义名字
-                    result.add(doCreateBeanDefinition(lowerFirstCase(inf.getName()),beanClass.getName()));
+                    result.add(doCreateBeanDefinition(inf.getName(),beanClass.getName()));
                 }
 
             }
