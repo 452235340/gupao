@@ -73,7 +73,10 @@ public class QBHandlerAdapter {
         Object resultValue = handlerMapping.getMethod().invoke(handlerMapping.getController(), paramValues);
         if (null == resultValue || resultValue instanceof Void){ return null;}
 
-
+        boolean isModelAndView = handlerMapping.getMethod().getReturnType() == QBModelAndView.class;
+        if (isModelAndView){
+            return (QBModelAndView) resultValue;
+        }
         return null;
     }
 

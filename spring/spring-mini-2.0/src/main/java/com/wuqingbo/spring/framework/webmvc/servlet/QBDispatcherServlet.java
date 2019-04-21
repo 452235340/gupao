@@ -72,6 +72,9 @@ public class QBDispatcherServlet extends HttpServlet {
         String templateRootPath = this.getClass().getClassLoader().getResource(templateRoot).getFile();
         File templateRootDir = new File(templateRootPath);
         for (File template : templateRootDir.listFiles()) {
+            //这里主要是为了兼容多模板，所有模仿Spring用List保存
+            //这里简化了，其实只有需要一个模板就可以搞定
+            //只是为了仿真，所有还是搞了个List
             this.viewResolvers.add(new QBViewResolver(templateRoot));
         }
 
@@ -185,6 +188,7 @@ public class QBDispatcherServlet extends HttpServlet {
         for (QBViewResolver viewResolver : this.viewResolvers) {
             QBView view = viewResolver.resolveViewName(mv.getViewName(), null);
             view.render(mv.getModel(),req,resp);
+            return;
         }
 
 

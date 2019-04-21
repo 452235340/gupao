@@ -12,6 +12,7 @@ import com.wuqingbo.spring.framework.webmvc.servlet.QBModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,8 +29,13 @@ public class DemoController {
     private IModifyService modifyService;
 
     @QBRequestMapping("/query")
-    public QBModelAndView queryName(HttpServletRequest request, @QBRequestParameter("name")String name){
-        String name1 = demoService.queryName(name);
+    public QBModelAndView queryName(HttpServletRequest request,HttpServletResponse response, @QBRequestParameter("name")String name){
+        String result = demoService.queryName(name);
+        try {
+            response.getWriter().write(result);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
@@ -37,6 +43,7 @@ public class DemoController {
     public QBModelAndView add(HttpServletRequest request, HttpServletResponse response, @QBRequestParameter("name") String name, @QBRequestParameter("addr") String addr){
         try {
             String result = modifyService.add(name, addr);
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
             Map<String,Object> model = new HashMap<String,Object>();

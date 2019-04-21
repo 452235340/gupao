@@ -74,12 +74,7 @@ public class QBBeanDefinitionReader {
             for (String className : registryBeanClasses){
                 Class<?> beanClass = Class.forName(className);
                 //如果是一个接口，用它的实现类作为beanClassName
-//                if (beanClass.isInterface()){continue;}
-                if (beanClass.isInterface() || beanClass.isAnnotationPresent(QBController.class)
-                        || beanClass.isAnnotationPresent(QBService.class)){
-                    continue;
-                }
-
+                if (beanClass.isInterface()){continue;}
                 //beanName有三种情况:
                 //1、默认是类名首字母小写
                 //2、自定义名字
