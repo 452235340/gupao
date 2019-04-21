@@ -128,7 +128,7 @@ public class QBApplicationContext extends QBDefaultListableBeanFactory implement
 
         Class<?> clazz = qbBeanWrapper.getWrappedClass();
         //判断只有加了注解的类，才执行依赖注入
-        if (clazz.isAnnotationPresent(QBController.class) || clazz.isAnnotationPresent(QBService.class)){
+        if (!(clazz.isAnnotationPresent(QBController.class) || clazz.isAnnotationPresent(QBService.class))){
             return;
         }
         //获得所有的fields
