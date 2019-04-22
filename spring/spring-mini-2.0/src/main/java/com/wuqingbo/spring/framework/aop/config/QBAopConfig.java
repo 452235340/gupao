@@ -1,7 +1,7 @@
 package com.wuqingbo.spring.framework.aop.config;
 
 /**
- * Created by qingbowu on 2019/4/22.
+ * Created by qingbowu.
  */
 public class QBAopConfig {
 

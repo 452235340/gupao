@@ -1,9 +1,16 @@
 package com.wuqingbo.spring.framework.aop.support;
 
+import com.wuqingbo.spring.framework.aop.aspect.QBAfterReturningAdviceInterceptor;
+import com.wuqingbo.spring.framework.aop.aspect.QBAfterThrowingAdvice;
+import com.wuqingbo.spring.framework.aop.aspect.QBMethodBeforeAdviceInterceptor;
 import com.wuqingbo.spring.framework.aop.config.QBAopConfig;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -19,6 +26,8 @@ public class QBAdvisedSupport {
 
     private Pattern poinCutClassPattern;
 
+    private Map<Method,List<Object>> methodCache;
+
     public QBAdvisedSupport(QBAopConfig aopConfig) {
         this.aopConfig = aopConfig;
     }
@@ -31,8 +40,13 @@ public class QBAdvisedSupport {
         return null;
     }
 
-    public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, Object target) {
-        return null;
+    public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, Object target) throws Exception {
+        List<Object> cache = this.methodCache.get(method);
+        if (null == cache){
+            Method m = targetClazz.getMethod(method.getName(),method.getParameterTypes());
+            this.methodCache.put(m,cache);
+        }
+        return cache;
     }
 
 
@@ -52,6 +66,46 @@ public class QBAdvisedSupport {
         //public .* com.wuqingbo.spring.demo.service..*Service..*(.*)
         String pointCutForClass = pointCut.substring(0, pointCut.lastIndexOf("\\(") - 4);
         poinCutClassPattern = Pattern.compile("class " + pointCutForClass.substring(pointCutForClass.lastIndexOf(" ")+1));
+
+        try {
+            methodCache = new HashMap<Method, List<Object>>();
+            Pattern pattern = Pattern.compile(pointCut);
+
+            Class<?> aspectClass = Class.forName(this.aopConfig.getPointClass());
+            Map<String,Method> aspectMethod = new HashMap<String,Method>();
+            for (Method method : aspectClass.getMethods()) {
+                aspectMethod.put(method.getName(),method);
+            }
+
+            for (Method method : this.targetClazz.getMethods()) {
+                String methodStr = method.toString();
+                if (methodStr.contains("throws")){
+                    methodStr = methodStr.substring(0,methodStr.lastIndexOf("throws")).trim();
+                }
+
+                Matcher matcher = pattern.matcher(methodStr);
+                if (matcher.matches()){
+                    List<Object> advices = new LinkedList<Object>();
+                    //把每一个方法包装成MethodInterceptor
+                    //before
+                    if (!(null == this.aopConfig.getAspectBefore() || "".equals(this.aopConfig.getAspectBefore()))){
+                        advices.add(new QBMethodBeforeAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectBefore()),aspectClass.newInstance()));
+                    }
+                    //after
+                    if (!(null == this.aopConfig.getAspectAfter() || "".equals(this.aopConfig.getAspectAfter()))){
+                        advices.add(new QBAfterReturningAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectAfter()),aspectClass.newInstance()));
+                    }
+                    //afterThrowing
+                    if (!(null == this.aopConfig.getAfterThrow() || "".equals(this.aopConfig.getAfterThrow()))){
+                        advices.add(new QBAfterThrowingAdvice(aspectMethod.get(this.aopConfig.getAfterThrow()),aspectClass.newInstance()));
+                    }
+                    methodCache.put(method,advices);
+                }
+            }
+        }catch (Exception e){
+
+        }
+
     }
 
     public Object getTargetObje() {
