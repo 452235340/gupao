@@ -3,7 +3,7 @@ package com.wuqingbo.spring.framework.beans.config;
 import lombok.Data;
 
 /**
- * Created by qingbowu on 2019/4/11.
+ * Created by qingbowu.
  */
 @Data
 public class QBBeanDefinition {

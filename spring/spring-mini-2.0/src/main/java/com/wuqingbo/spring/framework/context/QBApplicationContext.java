@@ -3,6 +3,11 @@ package com.wuqingbo.spring.framework.context;
 import com.wuqingbo.spring.framework.annotation.QBAutowired;
 import com.wuqingbo.spring.framework.annotation.QBController;
 import com.wuqingbo.spring.framework.annotation.QBService;
+import com.wuqingbo.spring.framework.aop.QBCglibAopProxy;
+import com.wuqingbo.spring.framework.aop.QBAopProxy;
+import com.wuqingbo.spring.framework.aop.QBJdkDynamicAopProxy;
+import com.wuqingbo.spring.framework.aop.config.QBAopConfig;
+import com.wuqingbo.spring.framework.aop.support.QBAdvisedSupport;
 import com.wuqingbo.spring.framework.beans.QBBeanFactory;
 import com.wuqingbo.spring.framework.beans.QBBeanWrapper;
 import com.wuqingbo.spring.framework.beans.config.QBBeanDefinition;
@@ -162,6 +167,14 @@ public class QBApplicationContext extends QBDefaultListableBeanFactory implement
             }else {
                 Class<?> clazz = Class.forName(className);
                 instance = clazz.newInstance();
+                QBAdvisedSupport advised = instantionAopConfig(beanDefinition);
+                advised.setTargetClazz(clazz);
+                advised.setTargetObje(instance);
+
+                if (advised.pointCutMatch()){
+                    instance = createAopProxy(advised).getProxy();
+                }
+
                 this.singletonObjects.put(className,instance);
                 this.singletonObjects.put(beanDefinition.getFactoryBeanName(),instance);
             }
@@ -169,6 +182,21 @@ public class QBApplicationContext extends QBDefaultListableBeanFactory implement
             e.printStackTrace();
         }
         return instance;
+    }
+
+    private QBAopProxy createAopProxy(QBAdvisedSupport advised) {
+        Class<?> clazz = advised.getTargetClass();
+        return clazz.getInterfaces().length >0 ? new QBJdkDynamicAopProxy(advised) : new QBCglibAopProxy();
+    }
+
+    private QBAdvisedSupport instantionAopConfig(QBBeanDefinition beanDefinition) {
+        QBAopConfig aopConfig = new QBAopConfig();
+        aopConfig.setPointClass(this.reader.getConfig().getProperty(""));
+        aopConfig.setAspectBefore(this.reader.getConfig().getProperty(""));
+        aopConfig.setAspectAfter(this.reader.getConfig().getProperty(""));
+        aopConfig.setAfterThrow(this.reader.getConfig().getProperty(""));
+        aopConfig.setAspectAfterThrowingName(this.reader.getConfig().getProperty(""));
+        return new QBAdvisedSupport(aopConfig);
     }
 
     public Properties getConfig(){

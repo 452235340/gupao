@@ -4,7 +4,7 @@ import com.wuqingbo.spring.demo.service.IDemoService;
 import com.wuqingbo.spring.framework.annotation.QBService;
 
 /**
- * Created by qingbowu on 2019/3/26.
+ * Created by qingbowu.
  */
 @QBService
 public class DemoService implements IDemoService {

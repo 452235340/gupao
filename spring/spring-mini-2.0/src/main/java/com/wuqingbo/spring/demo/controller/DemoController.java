@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by qingbowu on 2019/3/26.
+ * Created by qingbowu
  */
 @QBController
 @QBRequestMapping("/demo")

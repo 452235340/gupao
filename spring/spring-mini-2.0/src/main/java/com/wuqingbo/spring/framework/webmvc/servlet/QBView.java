@@ -35,7 +35,7 @@ public class QBView {
                 paramName = paramName.replaceAll("￥\\{|\\}","");
                 Object paramValue = model.get(paramName);
                 if (null == paramValue){continue;}
-                line = matcher.replaceFirst(paramName.toString());
+                line = matcher.replaceFirst(makeStringForRegExp(paramValue.toString()));
                 matcher = pattern.matcher(line);
             }
             sb.append(line);
@@ -44,4 +44,16 @@ public class QBView {
         response.setCharacterEncoding("utf-8");
         response.getWriter().print(sb.toString());
    }
+
+    //处理特殊字符
+    public static String makeStringForRegExp(String str) {
+        return str.replace("\\", "\\\\").replace("*", "\\*")
+                .replace("+", "\\+").replace("|", "\\|")
+                .replace("{", "\\{").replace("}", "\\}")
+                .replace("(", "\\(").replace(")", "\\)")
+                .replace("^", "\\^").replace("$", "\\$")
+                .replace("[", "\\[").replace("]", "\\]")
+                .replace("?", "\\?").replace(",", "\\,")
+                .replace(".", "\\.").replace("&", "\\&");
+    }
 }
