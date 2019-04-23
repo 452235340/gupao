@@ -1,8 +1,9 @@
 package com.wuqingbo.spring.framework.aop.support;
 
+import com.wuqingbo.spring.framework.annotation.QBAspectAfter;
+import com.wuqingbo.spring.framework.annotation.QBAspectBefore;
 import com.wuqingbo.spring.framework.aop.aspect.QBAfterReturningAdviceInterceptor;
 import com.wuqingbo.spring.framework.aop.aspect.QBAfterThrowingAdvice;
-import com.wuqingbo.spring.framework.aop.aspect.QBMethodBeforeAdviceInterceptor;
 import com.wuqingbo.spring.framework.aop.config.QBAopConfig;
 
 import java.lang.reflect.Method;
@@ -36,14 +37,13 @@ public class QBAdvisedSupport {
         return this.targetClazz;
     }
 
-    public Object getTarget() {
-        return null;
-    }
 
-    public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, Object target) throws Exception {
+    public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, Class<?> targetClass) throws Exception {
         List<Object> cache = this.methodCache.get(method);
         if (null == cache){
-            Method m = targetClazz.getMethod(method.getName(),method.getParameterTypes());
+            Method m = targetClass.getMethod(method.getName(),method.getParameterTypes());
+            //底层逻辑，对代理方法进行一个兼容处理
+            cache = methodCache.get(m);
             this.methodCache.put(m,cache);
         }
         return cache;
@@ -88,13 +88,19 @@ public class QBAdvisedSupport {
                     List<Object> advices = new LinkedList<Object>();
                     //把每一个方法包装成MethodInterceptor
                     //before
-                    if (!(null == this.aopConfig.getAspectBefore() || "".equals(this.aopConfig.getAspectBefore()))){
-                        advices.add(new QBMethodBeforeAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectBefore()),aspectClass.newInstance()));
-                    }
-                    //after
-                    if (!(null == this.aopConfig.getAspectAfter() || "".equals(this.aopConfig.getAspectAfter()))){
+                    if(method.isAnnotationPresent(QBAspectBefore.class)){
                         advices.add(new QBAfterReturningAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectAfter()),aspectClass.newInstance()));
                     }
+//                    if (!(null == this.aopConfig.getAspectBefore() || "".equals(this.aopConfig.getAspectBefore()))){
+//                        advices.add(new QBMethodBeforeAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectBefore()),aspectClass.newInstance()));
+//                    }
+                    //after
+                    if(method.isAnnotationPresent(QBAspectAfter.class)){
+                        advices.add(new QBAfterReturningAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectAfter()),aspectClass.newInstance()));
+                    }
+//                    if (!(null == this.aopConfig.getAspectAfter() || "".equals(this.aopConfig.getAspectAfter()))){
+//                        advices.add(new QBAfterReturningAdviceInterceptor(aspectMethod.get(this.aopConfig.getAspectAfter()),aspectClass.newInstance()));
+//                    }
                     //afterThrowing
                     if (!(null == this.aopConfig.getAfterThrow() || "".equals(this.aopConfig.getAfterThrow()))){
                         advices.add(new QBAfterThrowingAdvice(aspectMethod.get(this.aopConfig.getAfterThrow()),aspectClass.newInstance()));
@@ -103,7 +109,7 @@ public class QBAdvisedSupport {
                 }
             }
         }catch (Exception e){
-
+            e.printStackTrace();
         }
 
     }

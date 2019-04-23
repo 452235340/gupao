@@ -191,11 +191,12 @@ public class QBApplicationContext extends QBDefaultListableBeanFactory implement
 
     private QBAdvisedSupport instantionAopConfig(QBBeanDefinition beanDefinition) {
         QBAopConfig aopConfig = new QBAopConfig();
-        aopConfig.setPointClass(this.reader.getConfig().getProperty(""));
-        aopConfig.setAspectBefore(this.reader.getConfig().getProperty(""));
-        aopConfig.setAspectAfter(this.reader.getConfig().getProperty(""));
-        aopConfig.setAfterThrow(this.reader.getConfig().getProperty(""));
-        aopConfig.setAspectAfterThrowingName(this.reader.getConfig().getProperty(""));
+        aopConfig.setPointCut(this.reader.getConfig().getProperty("pointCut"));
+        aopConfig.setPointClass(this.reader.getConfig().getProperty("aspectClass"));
+        aopConfig.setAspectBefore(this.reader.getConfig().getProperty("aspectBefore"));
+        aopConfig.setAspectAfter(this.reader.getConfig().getProperty("aspectAfter"));
+        aopConfig.setAfterThrow(this.reader.getConfig().getProperty("aspectAfterThrow"));
+        aopConfig.setAspectAfterThrowingName(this.reader.getConfig().getProperty("aspectAfterThrowingName"));
         return new QBAdvisedSupport(aopConfig);
     }
 

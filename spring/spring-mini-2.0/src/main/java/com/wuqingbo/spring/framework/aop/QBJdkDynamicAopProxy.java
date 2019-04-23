@@ -32,8 +32,8 @@ public class QBJdkDynamicAopProxy implements QBAopProxy,InvocationHandler{
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, this.advised.getTarget());
-        QBMethodInvocation invocation = new QBMethodInvocation(proxy,this.advised.getTarget(),method,args,this.advised.getTargetClass(),chain);
+        List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, this.advised.getTargetClass());
+        QBMethodInvocation invocation = new QBMethodInvocation(proxy,this.advised.getTargetObje(),method,args,this.advised.getTargetClass(),chain);
         return invocation.proceed();
     }
 }

@@ -10,14 +10,25 @@ import java.lang.reflect.Method;
  */
 public class QBAfterThrowingAdvice extends QBAbstractAspectAdvice implements QBMethodInterceptor {
 
+    private String throwName;
+
+
     public QBAfterThrowingAdvice(Method method, Object aspectTarget) {
         super(method, aspectTarget);
     }
 
+
     @Override
-    public Object invoke(QBMethodInvocation invocation) throws Throwable {
-        return null;
+    public Object invoke(QBMethodInvocation mi) throws Throwable {
+        try {
+            return mi.proceed();
+        } catch (Throwable throwable) {
+            invokeAdviceMethod(mi,null,throwable.getCause());
+            throw throwable;
+        }
     }
 
-
+    public void setThrowName(String throwName) {
+        this.throwName = throwName;
+    }
 }
